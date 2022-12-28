@@ -19,14 +19,22 @@
 ;         [:button {:on-click #(set-counter (inc counter))} "+"]
 ;         [:button {:on-click #(set-counter (dec counter))} "-"]])))
 
+(defn box []
+  (let [geometry (t/BoxGeometry. 1 1 1)
+        material (t/MeshBasicMaterial. #js {:color 0x00ff00 :wireframe true :transparent true})]
+    (t/Mesh. geometry material)))
+
 (defn MyScene []
   (let [scene (t/Scene.)
         camera (t/PerspectiveCamera. 75 (/ (.-innerWidth js/window) (.-innerHeight js/window)) 0.1 1000)
         renderer (t/WebGLRenderer.)
-        geometry (t/BoxGeometry. 1 1 1)
-        material (t/MeshBasicMaterial. #js {:color 0x00ff00 :wireframe true})
-        cube (t/Mesh. geometry material)
+        cube (box)
         !my-ref (react/useRef)]
+    ; window resize function
+    (defn onWindowResize []
+      (set! (.-aspect camera) (/ (.-innerWidth js/window) (.-innerHeight js/window)))
+      (.updateProjectionMatrix camera)
+      (.setSize renderer (.-innerWidth js/window) (.-innerHeight js/window)))
     ; custom animation function
     (defn animate []
       (do
@@ -42,10 +50,12 @@
        (array)) ; array is used to run effect only once
     ; steps to generate result
     (do
+      (.setPixelRatio renderer (.-devicePixelRatio js/window)) ; possibly not needed
       (.setSize renderer (.-innerWidth js/window) (.-innerHeight js/window))
       (.appendChild (.-body js/document) (.-domElement renderer))
       (.add scene cube)
       (set! (.. camera -position -z) 5)
+      (.addEventListener js/window "resize" onWindowResize)
       ; necessary to convert to JSX
       (r/as-element [:<>]))))
 
