@@ -3,7 +3,8 @@
       [reagent.core :as r]
       [reagent.dom :as d]
       ["react" :as react]
-      [three :as t]))
+      [three :as t]
+      ["three/examples/jsm/controls/FlyControls" :as tfc]))
 
 ;; -------------------------
 ;; Components
@@ -29,6 +30,8 @@
         camera (t/PerspectiveCamera. 75 (/ (.-innerWidth js/window) (.-innerHeight js/window)) 0.1 1000)
         renderer (t/WebGLRenderer.)
         cube (box)
+        clock (t/Clock.)
+        controls (tfc/FlyControls. camera (.-domElement renderer))
         !my-ref (react/useRef)]
     ; window resize function
     (defn onWindowResize []
@@ -37,11 +40,13 @@
       (.setSize renderer (.-innerWidth js/window) (.-innerHeight js/window)))
     ; custom animation function
     (defn animate []
-      (do
-        (set! (.. cube -rotation -x) (+ (.. cube -rotation -x) 0.01))
-        (set! (.. cube -rotation -y) (+ (.. cube -rotation -y) 0.01))
-        (.render renderer scene camera)
-        (set! (.-current !my-ref) (js/requestAnimationFrame animate))))
+      (let [delta (.getDelta clock)]
+        (do
+          (set! (.. cube -rotation -x) (+ (.. cube -rotation -x) 0.005))
+          (set! (.. cube -rotation -y) (+ (.. cube -rotation -y) 0.01))
+          (.update controls delta)
+          (.render renderer scene camera)
+          (set! (.-current !my-ref) (js/requestAnimationFrame animate)))))
     ; effect runs only once
     (react/useEffect (fn []
        (do
@@ -54,6 +59,12 @@
       (.setSize renderer (.-innerWidth js/window) (.-innerHeight js/window))
       (.appendChild (.-body js/document) (.-domElement renderer))
       (.add scene cube)
+      ; fly controls
+      (set! (.-movementSpeed controls) 5)
+      (set! (.-domElement controls) (.-domElement renderer))
+      (set! (.-autoForward controls) false)
+      (set! (.-dragToLook controls) false)
+      ; rest of actions
       (set! (.. camera -position -z) 5)
       (.addEventListener js/window "resize" onWindowResize)
       ; necessary to convert to JSX
