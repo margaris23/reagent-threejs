@@ -1,0 +1,12 @@
+{:source-paths ["src"]
+ :dependencies [[binaryage/devtools "1.0.6"]
+                [nrepl "1.0.0"]
+                [reagent "1.1.1"]
+                [cljsjs/react "17.0.2-0"]]
+ :builds       {:app {:target     :browser
+                      :output-dir "public/js"
+                      :asset-path "/js"
+                      :modules    {:app {:entries [reagent-frontend-01.core]}}
+                      :devtools   {:after-load reagent-frontend-01.core/mount-root}}}
+
+ :dev-http     {3000 {:root "public"}}}
