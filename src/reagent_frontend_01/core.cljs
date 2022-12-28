@@ -19,17 +19,22 @@
 ;         [:p (str "counter is " counter)]
 ;         [:button {:on-click #(set-counter (inc counter))} "+"]
 ;         [:button {:on-click #(set-counter (dec counter))} "-"]])))
+(defn rotateBox [box]
+  (set! (.. box -rotation -x) (+ (.. box -rotation -x) 0.005))
+  (set! (.. box -rotation -y) (+ (.. box -rotation -y) 0.01)))
 
-(defn box []
+(defn box [color]
   (let [geometry (t/BoxGeometry. 1 1 1)
-        material (t/MeshBasicMaterial. #js {:color 0x00ff00 :wireframe true :transparent true})]
+        material (t/MeshBasicMaterial. #js {:color color :wireframe true :transparent true})]
     (t/Mesh. geometry material)))
 
 (defn MyScene []
   (let [scene (t/Scene.)
         camera (t/PerspectiveCamera. 75 (/ (.-innerWidth js/window) (.-innerHeight js/window)) 0.1 1000)
         renderer (t/WebGLRenderer.)
-        cube (box)
+        cube (box 0x00ff00)
+        cube2 (box 0xff0000)
+        cube3 (box 0x0000ff)
         clock (t/Clock.)
         controls (tfc/FlyControls. camera (.-domElement renderer))
         !my-ref (react/useRef)]
@@ -42,8 +47,9 @@
     (defn animate []
       (let [delta (.getDelta clock)]
         (do
-          (set! (.. cube -rotation -x) (+ (.. cube -rotation -x) 0.005))
-          (set! (.. cube -rotation -y) (+ (.. cube -rotation -y) 0.01))
+          (rotateBox cube)
+          (rotateBox cube2)
+          (rotateBox cube3)
           (.update controls delta)
           (.render renderer scene camera)
           (set! (.-current !my-ref) (js/requestAnimationFrame animate)))))
@@ -58,7 +64,14 @@
       (.setPixelRatio renderer (.-devicePixelRatio js/window)) ; possibly not needed
       (.setSize renderer (.-innerWidth js/window) (.-innerHeight js/window))
       (.appendChild (.-body js/document) (.-domElement renderer))
+      ; add scene items
       (.add scene cube)
+      (.add scene cube2)
+      (.add scene cube3)
+      (set! (.. cube2 -position -x) 2)
+      (set! (.. cube2 -rotation -x) 0.5)
+      (set! (.. cube3 -position -x) -2)
+      (set! (.. cube3 -rotation -x) -0.5)
       ; fly controls
       (set! (.-movementSpeed controls) 5)
       (set! (.-domElement controls) (.-domElement renderer))
