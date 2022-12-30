@@ -4,6 +4,7 @@
       [reagent.dom :as d]
       ["react" :as react]
       [three :as t]
+      ["three/examples/jsm/controls/OrbitControls" :as toc]
       ["three/examples/jsm/controls/FlyControls" :as tfc]))
 
 
@@ -31,6 +32,7 @@
         cube2 (box 0xff0000)
         cube3 (box 0x0000ff)
         clock (t/Clock.)
+        controls (toc/OrbitControls. camera (.-domElement renderer))
         ; controls (tfc/FlyControls. camera (.-domElement renderer))
         !my-ref (react/useRef)]
     ; window resize function
@@ -45,7 +47,7 @@
           (rotateBox cube)
           (rotateBox cube2)
           (rotateBox cube3)
-          ; (.update controls delta)
+          (.update controls delta)
           (.render renderer scene camera)
           (set! (.-current !my-ref) (js/requestAnimationFrame animate)))))
     ; effect (hook) runs only once
@@ -72,6 +74,8 @@
       ; (set! (.-domElement controls) (.-domElement renderer))
       ; (set! (.-autoForward controls) false)
       ; (set! (.-dragToLook controls) false)
+      ; orbit controls
+      (.set (.-target controls) 0 0 0)
       ; rest of actions
       (set! (.. camera -position -z) 5)
       (.addEventListener js/window "resize" onWindowResize)
