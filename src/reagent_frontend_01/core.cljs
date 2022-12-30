@@ -7,12 +7,15 @@
       ["three/examples/jsm/controls/OrbitControls" :as toc]
       ["three/examples/jsm/controls/FlyControls" :as tfc]))
 
-(set! *warn-on-infer* false)
+#_(set! *warn-on-infer* false)
 
 ;; Helper functions
 (defn box [color]
   (let [geometry (t/BoxGeometry. 1 1 1)
-        material (t/MeshBasicMaterial. #js {:color color :wireframe true :transparent true})]
+        material (t/MeshBasicMaterial.
+                    #js {:color color
+                         :wireframe true
+                         :transparent true})]
     (t/Mesh. geometry material)))
 
 (defn rotateBox [box]
@@ -21,6 +24,10 @@
 
 (defn screen-ratio []
   (/ (.-innerWidth js/window) (.-innerHeight js/window)))
+
+(defn formula [a b]
+  (-> (/ a b) (* 2) (- 1)))
+
 
 ;; -------------------------
 ;; Components
@@ -42,12 +49,8 @@
     ; pointerMove function
     (defn onPointerMove [event]
       (do
-        (set! (.-x pointer) (-> (/ (.-clientX event) (.-innerWidth js/window))
-                                (* 2)
-                                (- 1)))
-        (set! (.-y pointer) (-> (/ (.-clientY event) (.-innerHeight js/window))
-                                (* 2)
-                                (- 1)))))
+        (set! (.-x pointer) (formula (.-clientX event) (.-innerWidth js/window)))
+        (set! (.-y pointer) (formula (.-clientY event) (.-innerHeight js/window)))))
     ; window resize function
     (defn onWindowResize []
       (set! (.-aspect camera) (screen-ratio))
@@ -61,15 +64,15 @@
           ; if-case
           (if (not (= intersected (.-object (aget intersects 0))))
             (do
-              (if-let [intersected @intersected]
+              (if-let [^js intersected @intersected]
                 (set! (.. intersected -material -color) (.. intersected -currentColor)))
               (reset! intersected (.-object (aget intersects 0)))
-              (set! (.-currentColor @intersected) (.. @intersected -material -color))
-              (set! (.. @intersected -material -color) #js {:isColor true :r 0.5 :b 0.5 :g 0.5})))
+              (set! (.-currentColor ^js @intersected) (.. @intersected -material -color))
+              (set! (.. ^js @intersected -material -color) (t/Color. 0x777777))))
           ; else-case
           (do
             (if @intersected
-              (set! (.. @intersected -material -color) (.-currentColor @intersected)))
+              (set! (.. @intersected -material -color) (.-currentColor ^js @intersected)))
             (reset! intersected nil))))
     ; custom animation function
     (defn animate []
