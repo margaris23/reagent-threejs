@@ -7,8 +7,14 @@
       ["three/examples/jsm/controls/OrbitControls" :as toc]
       ["three/examples/jsm/controls/FlyControls" :as tfc]))
 
+(set! *warn-on-infer* false)
 
 ;; Helper functions
+(defn box [color]
+  (let [geometry (t/BoxGeometry. 1 1 1)
+        material (t/MeshBasicMaterial. #js {:color color :wireframe true :transparent true})]
+    (t/Mesh. geometry material)))
+
 (defn rotateBox [box]
   (set! (.. box -rotation -x) (+ (.. box -rotation -x) 0.001))
   (set! (.. box -rotation -y) (+ (.. box -rotation -y) 0.005)))
@@ -16,13 +22,9 @@
 (defn screen-ratio []
   (/ (.-innerWidth js/window) (.-innerHeight js/window)))
 
-(defn box [color]
-  (let [geometry (t/BoxGeometry. 1 1 1)
-        material (t/MeshBasicMaterial. #js {:color color :wireframe true :transparent true})]
-    (t/Mesh. geometry material)))
-
 ;; -------------------------
 ;; Components
+(def intersected (atom nil))
 
 (defn MyScene []
   (let [scene (t/Scene.)
@@ -32,14 +34,43 @@
         cube2 (box 0xff0000)
         cube3 (box 0x0000ff)
         clock (t/Clock.)
+        raycaster (t/Raycaster.)
+        pointer (t/Vector2.)
         controls (toc/OrbitControls. camera (.-domElement renderer))
         ; controls (tfc/FlyControls. camera (.-domElement renderer))
         !my-ref (react/useRef)]
+    ; pointerMove function
+    (defn onPointerMove [event]
+      (do
+        (set! (.-x pointer) (-> (/ (.-clientX event) (.-innerWidth js/window))
+                                (* 2)
+                                (- 1)))
+        (set! (.-y pointer) (-> (/ (.-clientY event) (.-innerHeight js/window))
+                                (* 2)
+                                (- 1)))))
     ; window resize function
     (defn onWindowResize []
       (set! (.-aspect camera) (screen-ratio))
       (.updateProjectionMatrix camera)
       (.setSize renderer (.-innerWidth js/window) (.-innerHeight js/window)))
+    ; update intersection object with pointer by changing color
+    (defn update-intersection! [intersects]
+        #_(js/console.log (.-length intersects))
+        #_(js/console.log pointer)
+        (if (> (.-length intersects) 0)
+          ; if-case
+          (if (not (= intersected (.-object (aget intersects 0))))
+            (do
+              (if-let [intersected @intersected]
+                (set! (.. intersected -material -color) (.. intersected -currentColor)))
+              (reset! intersected (.-object (aget intersects 0)))
+              (set! (.-currentColor @intersected) (.. @intersected -material -color))
+              (set! (.. @intersected -material -color) #js {:isColor true :r 0.5 :b 0.5 :g 0.5})))
+          ; else-case
+          (do
+            (if @intersected
+              (set! (.. @intersected -material -color) (.-currentColor @intersected)))
+            (reset! intersected nil))))
     ; custom animation function
     (defn animate []
       (let [delta (.getDelta clock)]
@@ -48,6 +79,8 @@
           (rotateBox cube2)
           (rotateBox cube3)
           (.update controls delta)
+          (.setFromCamera raycaster pointer camera)
+          (update-intersection! (.intersectObjects raycaster (.-children scene) false))
           (.render renderer scene camera)
           (set! (.-current !my-ref) (js/requestAnimationFrame animate)))))
     ; effect (hook) runs only once
@@ -79,6 +112,7 @@
       ; rest of actions
       (set! (.. camera -position -z) 5)
       (.addEventListener js/window "resize" onWindowResize)
+      (.addEventListener js/window "mousemove" onPointerMove)
       ; necessary to convert to JSX
       (r/as-element [:<>]))))
 
